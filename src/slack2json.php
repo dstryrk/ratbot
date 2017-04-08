@@ -159,9 +159,27 @@ I<?
 	// <generate html from channel logs>
 		$htmlDir=$baseDir.'/'.'html';
 		if(!is_dir($htmlDir)) mkdir($htmlDir);
+
+		$fullHtmlFile=$htmlDir.'/'.$channelName.'.html';
+			if(file_exists($fullHtmlFile)) {
+				echo "HTML already exists ".$channelJsonFile."\n";
+				continue;
+			}
+
 		$channels=scandir($jsonDir);
 		$channelNames=array();
 		$mostRecentChannelTimestamps=array();
+		$channelHtmlFile=$htmlDir.'/test.html';
+		if(file_exists($channelHtmlFile)) {
+			echo "HTML already exists ".$channelJsonFile."\n";
+			continue;
+		}
+
+		// this is message conversion into a tag
+		// stype sheet
+		$htmlMessages='<html><body><style>'.$stylesheet.'</style><div class="messages">';
+
+		
 		foreach($channels as $channel) {
 			if($channel=='.' || $channel=='..') continue;
 			if(is_dir($channel)) continue;
@@ -172,20 +190,20 @@ I<?
 			}
 			$array=explode('.json',$channel);
 			$channelName=$array[0];
-			
-			$channelHtmlFile=$htmlDir.'/'.$channelName.'.html';
-			if(file_exists($channelHtmlFile)) {
-				echo "HTML already exists ".$channelJsonFile."\n";
-				continue;
-			}
 
+			
 			array_push($channelNames,$channelName);
 			echo '====='."\n";
 			echo 'Generating HTML for #'.$channelName."\n";
 			echo '====='."\n";
 			$messages=json_decode(file_get_contents($jsonDir.'/'.$channel),true);
+			
 			if(empty($messages)) continue;
-			$htmlMessages='<html><body><style>'.$stylesheet.'</style><div class="messages">';
+			// channel header
+			$htmlMessages.='<h2>'.$channelName.'</h2>';
+			
+			
+			// add messages
 			foreach($messages as $message) {
 				if(empty($message)) continue;
 				if(empty($message['text'])) continue;
@@ -252,12 +270,12 @@ I<?
 				$htmlMessage.='<div><img src="'.$usersById[$message['user']]['profile']['image_72'].'" /><div class="message"><div class="username">'.$usersById[$message['user']]['name'].'</div><div class="time">'.date('Y-m-d H:i',$message['ts']).'</div><div class="msg">'.$message['text']."</div></div></div><br/>\n";
 				$htmlMessages.=$htmlMessage;
 			}
-
-			$htmlMessages.='</div></body></html>';
-			file_put_contents($channelHtmlFile,$htmlMessages);
-			$mostRecentChannelTimestamps[$channelName]=$mostRecentChannelTimestamp;
-			echo "\n";
 		}
+		$htmlMessages.='</div></body></html>';
+		file_put_contents($channelHtmlFile,$htmlMessages);
+		$mostRecentChannelTimestamps[$channelName]=$mostRecentChannelTimestamp;
+		echo "\n";
+		
 		asort($mostRecentChannelTimestamps);
 		$mostRecentChannelTimestamps=array_reverse($mostRecentChannelTimestamps);
 	// </generate html from channel logs>
