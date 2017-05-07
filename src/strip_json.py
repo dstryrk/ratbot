@@ -130,10 +130,12 @@ def extract_messagelist(filepath,channel,datestamp):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'strips json into one csv')
-    parser.add_argument('input_dir', metavar = 'input_dir',type=str,help='input diretory')
+    parser.add_argument('user', metavar = 'user',type=str, help='user')
+    parser.add_argument('input_dir', metavar = 'input_dir', type=str,help='input diretory')
 
     args = parser.parse_args()
     input_directory = args.input_dir
+    user = args.user
 
     # create user lookup
     user_dict = read_users(input_directory)
@@ -164,7 +166,7 @@ if __name__ == "__main__":
             
     for channel in channel_set:
         user_lookup[channel] = set(user_lookup[channel])
-    user = 'mdimmic'
+
     for mes in messages:
         channel = mes[0]
         if user in user_lookup[channel]:
