@@ -56,6 +56,20 @@ import json
         }
     },
 '''
+
+def strip_messages(file):
+    message_list = []
+    with open(file,'r') as json_data:
+        messages = json.load(json_data)
+    for message in messages:
+        timestamp = message['timestamp']
+        user = message['user']
+        text = message['text']
+        format_message = "{0}:{1}:{2}".format(user,timestamp,text)
+        message_list.append(format_message)
+    return message_list
+
+    
 def check_user_in_channel(user,channel):
     members = channel['members']
     user_id = user['id']
@@ -84,11 +98,15 @@ def check_folders(folders):
             #os.mkdir(newfolder)
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(description = 'splits files into temp directory')
     parser.add_argument('datemonth', metavar = 'datemonth',type=str,help='date month in YYYY-MM form')
+    #parser.add_argument('export_dir', metavar = 'export_dir',type=str,help='export diretory')
+
     args = parser.parse_args()
     datestring = args.datemonth
-    input_directory = '../data/Rats And Such Slack export Apr 4 2017'
+    input_directory = '../data/Rats and Such'
+    #input_directory = parser.export_dir
     output_directory = '../data/output/{0}'.format(datestring)
 
     users = read_users()
@@ -106,7 +124,8 @@ if __name__ == "__main__":
             pass #shutil.copytree(input_directory,output_directory)
         except:
             pass
-
+        '''
+        # clear channels of each date
         for channel in channels:
             print
             print user['name'], channel['name']
@@ -128,4 +147,13 @@ if __name__ == "__main__":
                         dest = os.path.join(root, file)
                         print "removing - not w/i date range", dest
                         os.remove(dest)
-                
+        '''
+        print "output_directory", output_directory
+        for root, folders, files  in os.walk(output_directory):
+            for file in files:
+                with open(os.path(root,file),'r') as of:
+                    for channel in channels:
+                        print "{0}".format(channel)
+                        for file in channel_directory:
+                            get_messages(file)
+
