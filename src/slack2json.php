@@ -52,52 +52,6 @@ I<?
 	mb_internal_encoding("UTF-8");
 	error_reporting(E_ERROR);
 
-	// <config>
-		$stylesheet="
-			* {
-				font-family:sans-serif;
-			}
-			body {
-				text-align:center;
-				padding:1em;
-			}
-			.messages {
-				width:100%;
-				max-width:700px;
-				text-align:left;
-				display:inline-block;
-			}
-			.messages img {
-				background-color:rgb(248,244,240);
-				width:36px;
-				height:36px;
-				border-radius:0.2em;
-				display:inline-block;
-				vertical-align:top;
-				margin-right:0.65em;
-			}
-			.messages .time {
-				display:inline-block;
-				color:rgb(200,200,200);
-				margin-left:0.5em;
-			}
-			.messages .username {
-				display:inline-block;
-				font-weight:600;
-				line-height:1;
-			}
-			.messages .message {
-				display:inline-block;
-				vertical-align:top;
-				line-height:1;
-				width:calc(100% - 3em);
-			}
-			.messages .message .msg {
-				line-height:1.5;
-			}
-		";
-	// </config>
-
     // <compile daily logs into single channel logs>
 		$files=scandir(__DIR__);
 		$baseDir=__DIR__.'/../slack2html';
@@ -175,11 +129,6 @@ I<?
 			continue;
 		}
 
-		// this is message conversion into a tag
-		// stype sheet
-		$htmlMessages='<html><body><style>'.$stylesheet.'</style><div class="messages">';
-
-		
 		foreach($channels as $channel) {
 			if($channel=='.' || $channel=='..') continue;
 			if(is_dir($channel)) continue;
@@ -267,7 +216,9 @@ I<?
 				$message['text']=utf8_decode($message['text']);
 				
 				$htmlMessage='';
-				$htmlMessage.='<div><img src="'.$usersById[$message['user']]['profile']['image_72'].'" /><div class="message"><div class="username">'.$usersById[$message['user']]['name'].'</div><div class="time">'.date('Y-m-d H:i',$message['ts']).'</div><div class="msg">'.$message['text']."</div></div></div><br/>\n";
+				//$htmlMessage.='<div><img src="'.$usersById[$message['user']]['profile']['image_72'].'" /><div class="message"><div class="username">'.$usersById[$message['user']]['name'].'</div><div class="time">'.date('Y-m-d H:i',$message['ts']).'</div><div class="msg">'.$message['text']."</div></div></div><br/>\n";
+				$htmlMessage.= $usersById[$message['user']]['name'].': '.date('Y-m-d H:i',$message['ts']).': '.$message['text']."\n" ;
+				
 				$htmlMessages.=$htmlMessage;
 			}
 		}

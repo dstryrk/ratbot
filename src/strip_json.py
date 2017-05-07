@@ -127,10 +127,12 @@ def format_message(message):
             else:
                 print 'excepted',message
 
-def extract_messages(message_list,):
+def extract_messages(message_list):
+    bucket = []
     for message in message_list:
         user,ts,text = format_message(message)
-        print channel, ts, datestamp, user, text
+        #print channel, ts, datestamp, user, text
+        bucket.append([channel, ts, datestamp, user, text])
 
 def extract_messagelist(filepath,channel,datestamp):
     if "channels.json" in filepath or "users.json" in filepath or "integration_logs.json" in filepath:
@@ -139,7 +141,6 @@ def extract_messagelist(filepath,channel,datestamp):
         message_list = json.load(json_data)
     return message_list
 
-def return_channels(message_list):
 
 
 if __name__ == "__main__":
@@ -147,70 +148,30 @@ if __name__ == "__main__":
     global channel_dict
     parser = argparse.ArgumentParser(description = 'strips json into one csv')
     parser.add_argument('input_dir', metavar = 'input_dir',type=str,help='input diretory')
-    
+
     args = parser.parse_args()
-    #input_directory = '../data/Rats and Such'
     input_directory = args.input_dir
+
     output_file = '../data/output/{0}.output.csv'
-    
+
 
     # create user lookup
     user_dict = read_users(input_directory)
     
     # create channel lookup
-    #channel_dict = read_channel(input_directory)
-    channel_list = []
+    messages = []
     for root,folders, files in os.walk(input_directory):
         for fil in files:
             datestamp = fil.replace('.json','')
             head,tail = os.path.split(root)
             channel = tail
-            channel_list.append(channel)
             fpath = os.path.join(root,fil)
-            extract_messages(fpath,channel,datestamp)
-
-
-    message_dictionary = {}
-    for root,folders, files in os.walk(input_directory):
-        for fil in files:
-            datestamp = fil.replace('.json','')
-            head,tail = os.path.split(root)
-            channel = tail
-            #print channel
-            #print datestamp
-            fpath = os.path.join(root,fil)
-            extract_messages(fpath,channel,datestamp)
-
-    '''
-    for user in users:
-        # create user directory
-        username = user['name']
-        print 'creating user directory', username
-        output_directory = '../data/output/{0}/{1}'.format(username, datestring)
-        print input_directory
-        print output_directory
-
-        # clear channels of each date
-        for channel in channels:
-            print
-            print user['name'], channel['name']
-            print 'checking ', os.path.join(output_directory, channel['name'])
-            if not check_user_in_channel(user, channel):
-                destination = os.path.join(output_directory, channel['name'])
-                print "removing - not in channel", destination
-                shutil.rmtree(destination)
-            else:
-                print "channel ok", destination
-
-        # remove files
-        for root, folders, files  in os.walk(output_directory):
-            # remove files not in date range
-            for file in files:
-                if datestring not in file:
-                    if not('channels.json' in file or 'integration_logs.json' in file or 'users.json' in file):
-                        print file
-                        dest = os.path.join(root, file)
-                        print "removing - not w/i date range", dest
-                        os.remove(dest)
-
-        '''
+            
+            message_list = extract_messagelist(fpath,channel,datestamp)
+            if message_list:
+                m = extract_messages(message_list)
+                print m
+                print fpath
+                messages = messages + m
+    
+    print messages[0]
