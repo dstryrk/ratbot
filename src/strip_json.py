@@ -3,7 +3,11 @@ import argparse
 import shutil
 import json
 import time
+global user_dict
+global channel_dict
+    
 user_dict = {}
+channel_dict = {}
 
 def strip_messages(file):
     message_list = []
@@ -17,41 +21,24 @@ def strip_messages(file):
         message_list.append(format_message)
     return message_list
 
-    
-def check_user_in_channel(user,channel):
-    print user
-    print channel_dict
-    print channel_dict.keys()
-    print 'channel', channel_dict['members']
-    inv_map = {v: k for k, v in user_dict.iteritems()}
-    members = channeldict['members']
-    user_id = inv_map[user] #user['id']
-
-    if user_id in members:
-        return True
-    else:
-        return False
-
 def read_users(input_directory):
     global user_dict
     filepath = os.path.join(input_directory, 'users.json')
-    #print filepath
     with open(filepath, 'r') as json_data:
-        userdict= json.load(json_data)
-    #print "user length", len(userdict)
+        userdict = json.load(json_data)
     for user in userdict:
-        user_dict[user['id']] = user['name']
-    
+        user_dict[user['id']] = user['name']    
     return user_dict
-'''
+
 def read_channel(input_directory):
-    global channeldict
+    global channel_dict
     filepath = os.path.join(input_directory, 'channels.json')
-    print filepath
     with open(filepath,'r') as json_data:
-        channeldict= json.load(json_data)
-    return channeldict
-'''
+        channellist = json.load(json_data)
+    for channel in channellist:
+        channel_dict[channel['id']] = channel['name']
+    return channel_dict
+
 def check_folders(folders):
     for folder in folders:
         newfolder = os.path.join(output_directory, folder)
@@ -69,35 +56,35 @@ def format_text(message):
     # convert change <@U38A3DE9> into levelsio
     if '<@' in message:
         #print "replacing <@"
-        try:
+        if '|' in message:
+            token = message.split('<@')[1].split('>')[0]
             uname = message.split('<@')[1].split('>')[0].split('|')[0]
-            handle = user_dict[uname]
-            message = message.replace(uname, handle)
-        except:
-            pass
-
+            if uname in user_dict.keys():
+                handle = user_dict[uname]
+                message = message.replace(token, handle)
+        else:
+            uname = message.split('<@')[1].split('>')[0]
+            if uname in user_dict.keys():
+                handle = user_dict[uname]
+                message = message.replace(uname, handle)
     # change <#U38A3DE9> into #_chiang-mai
-    if '<#U' in message:
-        #print "replacing <#"
-        uname = message.split('<#')[1].split('>')[0]
-        #uname = message.split('<#')[1].split('>')[0].split('|')[0]
-        handle = user_dict[uname]
-        message = message.replace(uname, handle)
-        #handle = "#_" + user_dict[uname]
-        #token = '<#' + uname + '>'
-        message = message.replace(uname, handle)
+    if '<#' in message:
+        if '|' in message:
+            #print "replacing <#"
+            token = message.split('<#')[1].split('>')[0]
+            uname = message.split('<#')[1].split('>')[0].split('|')[0]
+            if uname in channel_dict.keys():
+                handle = channel_dict[uname]
+                message = message.replace(token, handle)
+        else:
+            uname = message.split('<#')[1].split('>')[0]
+            handle = channel_dict[uname]
+            message = message.replace(uname, handle)
+            
     return message
-
-def format_usercode(usercode):
-    return user_dict(usercode)
-
 
 def format_message(message):
     message_type = message['type']
-    #print 
-    #print "message type:", message_type
-    #print "message keys:", message.keys()
-    #print "message\n",message
     if 'text' in message.keys():
         if "message" == message_type:
             if 'bot_id' in message.keys():       
@@ -126,39 +113,35 @@ def format_message(message):
                 return 'file',timestamp,text
             else:
                 print 'excepted',message
+    
+def extract_messagelist(filepath,channel,datestamp):
+    if "channels.json" in filepath or "users.json" in filepath or "integration_logs.json" in filepath:
+        return None
+    with open(filepath, 'r') as json_data:
+        message_list = json.load(json_data)
 
-def extract_messages(message_list):
     bucket = []
     for message in message_list:
         user,ts,text = format_message(message)
         #print channel, ts, datestamp, user, text
         bucket.append([channel, ts, datestamp, user, text])
 
-def extract_messagelist(filepath,channel,datestamp):
-    if "channels.json" in filepath or "users.json" in filepath or "integration_logs.json" in filepath:
-        return
-    with open(filepath, 'r') as json_data:
-        message_list = json.load(json_data)
-    return message_list
-
-
+    return bucket
 
 if __name__ == "__main__":
-    global user_dict
-    global channel_dict
     parser = argparse.ArgumentParser(description = 'strips json into one csv')
     parser.add_argument('input_dir', metavar = 'input_dir',type=str,help='input diretory')
 
     args = parser.parse_args()
     input_directory = args.input_dir
 
-    output_file = '../data/output/{0}.output.csv'
-
-
     # create user lookup
     user_dict = read_users(input_directory)
-    
+
     # create channel lookup
+    channel_dict = read_channel(input_directory)
+    
+    #format messages
     messages = []
     for root,folders, files in os.walk(input_directory):
         for fil in files:
@@ -167,11 +150,22 @@ if __name__ == "__main__":
             channel = tail
             fpath = os.path.join(root,fil)
             
-            message_list = extract_messagelist(fpath,channel,datestamp)
-            if message_list:
-                m = extract_messages(message_list)
-                print m
-                print fpath
-                messages = messages + m
-    
-    print messages[0]
+            messages_from_file = extract_messagelist(fpath,channel,datestamp)
+            if messages_from_file:
+                messages = messages + messages_from_file
+    # create channel set
+    import sets
+    channel_set = set([mes[0] for mes in messages])
+    user_lookup = {k:[] for k in channel_set}
+    for mes in messages:
+        for channel in channel_set:
+            if mes[0] == channel:
+                user_lookup[channel] = user_lookup[channel] + [mes[3]]
+            
+    for channel in channel_set:
+        user_lookup[channel] = set(user_lookup[channel])
+    user = 'mdimmic'
+    for mes in messages:
+        channel = mes[0]
+        if user in user_lookup[channel]:
+            print mes[0],mes[1],mes[2],mes[3],mes[4]
